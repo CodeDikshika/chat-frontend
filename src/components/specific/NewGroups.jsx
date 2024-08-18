@@ -1,0 +1,92 @@
+import { useInputValidation } from "6pp";
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  Skeleton,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useAvailableFriendsQuery, useNewGroupMutation } from "../../redux/api/api";
+import { setIsNewGroup } from "../../redux/reducers/misc";
+import UserItem from "../shared/UserItem";
+
+import { useAsyncMutation } from "../../hooks/hook";
+const NewGroups = () => {
+  const dispatch = useDispatch();
+   const {isNewGroup} = useSelector(state=>state.misc)
+  const {isError,isLoading,error,data}= useAvailableFriendsQuery();
+  console.log(data )
+  const closeHandler=()=>{
+    dispatch(setIsNewGroup(false))
+  }
+  const [newGroup, isLoadingNewGroup] = useAsyncMutation(useNewGroupMutation);
+  const groupName = useInputValidation("");
+
+  const [selectedMembers, setSelectedMembers] = useState([]);
+
+  const selectMemberHandler = (id) => {
+   
+    setSelectedMembers((prev) =>
+      prev.includes(id)
+        ? prev.filter((currElement) => currElement !== id)
+          : [...prev, id]
+    );
+  };
+
+  const submitHandler = () => {
+    if (!groupName.value) return toast.error("Group name is required");
+
+    if (selectedMembers.length < 2)
+      return toast.error("Please Select Atleast 3 Members");
+
+    newGroup("Creating New Group...", {
+      name: groupName.value,
+      members: selectedMembers,
+    });
+
+    closeHandler();
+  };
+
+
+  return (
+    <Dialog open onClose={closeHandler} close={isNewGroup}>
+      <Stack p={{ xs: "1rem", sm: "2rem" }} width={"30rem"} spacing={"2rem"}>
+        <DialogTitle textAlign={"center"} variant="h5">
+          Nye Log
+        </DialogTitle>
+        <TextField
+          label="naam kya h"
+          value={groupName.value}
+          onChange={groupName.changeHandler}
+        />
+        <Typography variant="body1">Members</Typography>
+        <Stack>
+          { isLoading?(<Skeleton/> ):
+        data?.friends?.map((i) => (
+            <UserItem
+              user={i}
+              key={i._id}
+              handler={selectMemberHandler}
+              isAdded={selectedMembers.includes(i._id)}
+            />
+          ))}
+        </Stack>
+        <Stack direction={"row"} justifyContent={"space-evenly"}>
+          <Button variant="text" color="error" size="large" onClick={closeHandler}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="large" onClick={submitHandler} disabled
+          ={isLoadingNewGroup}>
+            Create
+          </Button>
+        </Stack>
+      </Stack>
+    </Dialog>
+  );
+};
+
+export default NewGroups;
